@@ -1,0 +1,40 @@
+include:
+  - proxy.yaml
+services:
+  web:
+    image: registry.gitlab.com/kumpelalex111/devops-netology/python_app:1
+    ports:
+      - 5000:5000
+    restart: on-failure
+    hostname: web
+    networks:
+      backend:
+        ipv4_address: 172.20.0.5
+    environment:
+      - DB_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+  
+  db:
+    image: registry.gitlab.com/kumpelalex111/devops-netology/mysql_app:1
+    ports:
+      - 3306:3306
+    hostname: db
+    restart: on-failure
+    networks:
+      backend:
+        ipv4_address: 172.20.0.10
+    env_file: ".env"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10  
+
+networks:
+  backend:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.20.0.0/24
+         #- gateway: 172.20.0.1

@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+EXPOSE 5000
+COPY main.py ./
+ENV DB_HOST="172.20.0.10"
+ENV DB_USER="app"
+ENV DB_NAME="virtd"
+ENV DB_PASSWORD="QwErTy1234"
+
+# Запускаем приложение с помощью uvicorn, делая его доступным по сети
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] 
