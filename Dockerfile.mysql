@@ -1,0 +1,12 @@
+FROM mysql:8.0.44-debian
+ARG MYSQL_ROOT
+ARG MYSQL_PASS
+ENV MYSQL_ROOT_PASSWORD=$MYSQL_ROOT
+ENV MYSQL_PASSWORD=$MYSQL_PASS
+ENV MYSQL_DATABASE=virtd
+ENV MYSQL_USER=app
+ENV MYSQL_ROOT_HOST="%"
+#RUN --mount=type=secret,id=sql_root export TEST=$(cat /run/secrets/sql_root) && echo $TEST
+EXPOSE 3306
+
+
