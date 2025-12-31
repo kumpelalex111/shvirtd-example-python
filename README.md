@@ -1,96 +1,125 @@
-# shvirtd-example-python
+### Домашнее задание к занятию 5. «Практическое применение Docker»- Хрипун Алексей
 
-Учебный проект FastAPI-приложения для изучения Docker Compose.
-
-## Описание проекта
-
-Это простое веб-приложение на FastAPI, предназначенное для изучения контейнеризации и работы с Docker Compose. Приложение демонстрирует:
-
-- Создание веб-сервиса на FastAPI
-- Подключение к базе данных MySQL
-- Работу с прокси-серверами (Nginx → HAProxy → FastAPI)
-- Корректную настройку сетей Docker
-- Передачу IP-адресов через заголовки прокси
-
-### Функциональность
-
-При обращении к главной странице приложение:
-1. Определяет IP-адрес клиента
-2. Записывает время запроса и IP-адрес в базу данных MySQL
-3. Возвращает эту информацию пользователю
-
-**Важно для обучения:** Если обращаться к приложению напрямую (минуя прокси), вы получите подсказку о неправильном выполнении задания.
-
-## Способы запуска
-
-### 1. Запуск через Docker Compose
-
-**Архитектура при запуске через Docker Compose:**
+## Задание 1.
+Dockerfile приложения:
 ```
-Клиент → Nginx (8090) → HAProxy (8080) → FastAPI App (5000) → MySQL
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+EXPOSE 5000
+COPY main.py ./
+ARG DB_PASS
+ENV DB_HOST="172.20.0.10"
+ENV DB_USER="app"
+ENV DB_NAME="virtd"
+ENV DB_PASSWORD=$DB_PASS
+# Запускаем приложение с помощью uvicorn, делая его доступным по сети
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
 ```
 
-### 2. Локальный запуск для разработки
+![img](img/Dockerfile.python)
 
-```bash
-# Создайте виртуальное окружение
-python3 -m venv venv
-source venv/bin/activate  # в Windows: venv\Scripts\activate
+Собираем образ командой:
+docker build --build-arg DB_PASS=$DB_PASS -f Dockerfile.python -t python_app:1 .
 
-# Установите зависимости
-pip install -r requirements.txt
+Создаем сеть для контейнеров приложения:
+```
+docker network create  -d bridge --gateway 172.20.0.1 --subnet 172.20.0.0/24 backend
+```
+Запускаем образ:
+```
+docker run -d --name app --network backend --ip 172.20.0.5 -p 5000:5000 python_app:1
+```
+Проверяем:
+![img](img/1_0.png)
 
-# Настройте переменные окружения для подключения к БД(не забудьте отдельно запустить БД)
-export DB_HOST='127.0.0.1'
-export DB_USER='app'  
-export DB_PASSWORD='very_strong'
-export DB_NAME='example'
+![img](img/1_2.png)
 
-# Запустите приложение
-uvicorn main:app --host 0.0.0.0 --port 5000 --reload
+Необходимо создать файл .dockerignore, и заодно .gitignore. В оба файла обязательно нужно поместить файл с паролями **.env**. В .dockerignore также нужно поместить:
+```
+.git
+.env
+README.md
+proxy.yaml
+schema.pdf
+Dockerfile.mysql
+Dockerfile.python
+docker_run.sh
+/haproxy/
+/nginx/
+```
+![img](./.dockerignore)
+
+Пробуем запустить приложение без контейнера в виртуальном окружении venv, экспортировав предварительно необходимые переменные:
+![img](img/1_3.png)
+
+
+## Задание 2
+
+В репозитории Yandex произведено сканирование образа приложения. Результаты не утешительны, но могло быть и хуже:
+![img](img/2_1.png)
+
+## Задание 3
+
+Запускаем проект Docker compose (![img](compose.yaml)). Проверяем возвращение адресов:
+
+![img](img/3_0.png)
+
+Подключаемся к базе данных и смотрим таблицу:
+
+![img](img/3.png)
+
+## Задание 4
+Скрипт для копирования и запуска проекта:
+![img](docker_run.sh)
+
+```
+#!/bin/bash
+host=$(cat /home/alex/docker_project/ansible/ip-web.txt | tr -d '\r')
+key=/home/alex/.ssh/id_ed25519
+rsync --rsync-path="sudo rsync" -a -e "ssh -i $key" /git/shvirtd-example-python alex@$host:/opt
+
+ssh -i "$key" alex@$host "docker compose -f /opt/shvirtd-example-python/compose.yaml up -d"
 ```
 
-**Требования для локального запуска:**
-- Python 3.12+
-- Запущенный сервер MySQL
-- База данных и пользователь, настроенные согласно переменным окружения
+Результат:
+![img](img/4_1.png)
 
-## Настройка базы данных MySQL
+Создаем удаленный контекст:
+![img](img/4_2.png)
 
-```sql
-CREATE DATABASE example;
-CREATE USER 'app'@'localhost' IDENTIFIED BY 'very_strong';
-GRANT ALL PRIVILEGES ON example.* TO 'app'@'localhost';
-FLUSH PRIVILEGES;
+Запрос к базе данных:
+![img](img/4_3.png)
+
+## Задание 6
+Запускаем Dive с образом terraform:
+```
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive:latest hashicorp/terraform:latest
+```
+![img](img/6_1.png)
+
+Сохраняем образ:
+```
+docker save hashicorp/terraform:latest > /distrib/terraform/terraform.tar
 ```
 
-## Доступные эндпоинты
+Распаковываем файл и переходим в каталог blobs/sha256. Здесь находятся файлы слоев. Ещем подходящий по хэшу, который был найдет в Dive:
+![img](img/6_1_0.png)
 
-- `GET /` - главная страница (записывает запрос в БД и возвращает время + IP)
-- `GET /requests` - просмотр всех записей из базы данных  
-- `GET /debug` - отладочная информация о заголовках запроса
-- `GET /docs` - автоматическая документация FastAPI (Swagger UI)
-
-## Переменные окружения
-
-| Переменная | Значение по умолчанию | Описание |
-|------------|----------------------|----------|
-| `DB_HOST` | `127.0.0.1` | Хост базы данных MySQL |
-| `DB_USER` | `app` | Пользователь БД |
-| `DB_PASSWORD` | `very_strong` | Пароль БД |
-| `DB_NAME` | `example` | Имя базы данных |
-
-## Проверка работы
-
-```bash
-# При правильной настройке через прокси
-curl http://localhost:8090
-
-# При прямом обращении (НЕПРАВИЛЬНО) 
-curl http://localhost:5000  
-# Получите подсказку о том, что нужно использовать порт 8090
+Распаковываем найденный файл:
 ```
+tar xf d7ce41a85ad466f7c820e6abb07f005d4903828399fab2ccd4a8aff3d7e6a0f2
+```
+Получаем бинарник:
+![img](img/6_1_0_1.png)
 
-## Лицензия
+## Задание 6.1
 
-Этот проект распространяется под лицензией MIT (подробности в файле `LICENSE`).
+Для упрощения пересобирается исходный образ, чтобы он ничего не делал, только выполнял команду sleep:
+
+![img](img/6_1_1.png)
+
+Из запущенного контейнера копируем нужный файл:
+![img](img/6_2.png)
+

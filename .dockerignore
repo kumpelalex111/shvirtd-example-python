@@ -1,2 +1,10 @@
-schema.pdf
+.git
 .env
+README.md
+proxy.yaml
+schema.pdf
+Dockerfile.mysql
+Dockerfile.python
+docker_run.sh
+/haproxy/
+/nginx/
