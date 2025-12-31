@@ -18,11 +18,12 @@ ENV DB_PASSWORD=$DB_PASS
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
 ```
 
-[img](Dockerfile.python)
+[Dockerfile.python](Dockerfile.python)
 
 Собираем образ командой:
+```
 docker build --build-arg DB_PASS=$DB_PASS -f Dockerfile.python -t python_app:1 .
-
+```
 Создаем сеть для контейнеров приложения:
 ```
 docker network create  -d bridge --gateway 172.20.0.1 --subnet 172.20.0.0/24 backend
@@ -49,20 +50,22 @@ docker_run.sh
 /haproxy/
 /nginx/
 ```
-![img](./.dockerignore)
+[.dockerignore](.dockerignore)
 
 Пробуем запустить приложение без контейнера в виртуальном окружении venv, экспортировав предварительно необходимые переменные:
+
 ![img](img/1_3.png)
+
 
 
 ## Задание 2
 
-В репозитории Yandex произведено сканирование образа приложения. Результаты не утешительны, но могло быть и хуже:
+В репозитории Yandex произведено сканирование образа приложения. Результаты:
 ![img](img/2_1.png)
 
 ## Задание 3
 
-Запускаем проект Docker compose (![img](compose.yaml)). Проверяем возвращение адресов:
+Запускаем проект Docker compose ([compose.yaml](compose.yaml)). Проверяем возвращение адресов:
 
 ![img](img/3_0.png)
 
@@ -72,7 +75,7 @@ docker_run.sh
 
 ## Задание 4
 Скрипт для копирования и запуска проекта:
-![img](docker_run.sh)
+[docker_run.sh](docker_run.sh)
 
 ```
 #!/bin/bash
