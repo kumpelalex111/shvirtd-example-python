@@ -18,7 +18,7 @@ ENV DB_PASSWORD=$DB_PASS
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
 ```
 
-![img](img/Dockerfile.python)
+[img](Dockerfile.python)
 
 Собираем образ командой:
 docker build --build-arg DB_PASS=$DB_PASS -f Dockerfile.python -t python_app:1 .
